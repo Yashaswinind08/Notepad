@@ -1,0 +1,198 @@
+package com.mycompany.notepad;
+
+import javax.swing.*;
+import javax.swing.undo.UndoManager;
+import java.awt.*;
+import java.awt.event.*;
+import java.io.*;
+
+public class Notepad extends JFrame implements ActionListener {
+    private JTextArea textArea;
+    private JFileChooser fileChooser;
+    private UndoManager undoManager;
+
+    public Notepad() {
+        // Set up the frame
+        setTitle("Java Notepad");
+        setSize(800, 600);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        // Create text area
+        textArea = new JTextArea();
+        add(new JScrollPane(textArea), BorderLayout.CENTER);
+
+        // Initialize UndoManager
+        undoManager = new UndoManager();
+        textArea.getDocument().addUndoableEditListener(undoManager);
+
+        // Create menu bar
+        JMenuBar menuBar = new JMenuBar();
+
+        // File menu
+        JMenu fileMenu = new JMenu("File");
+        JMenuItem openItem = new JMenuItem("Open");
+        JMenuItem saveItem = new JMenuItem("Save");
+        JMenuItem exitItem = new JMenuItem("Exit");
+
+        openItem.addActionListener(this);
+        saveItem.addActionListener(this);
+        exitItem.addActionListener(this);
+
+        fileMenu.add(openItem);
+        fileMenu.add(saveItem);
+        fileMenu.addSeparator();
+        fileMenu.add(exitItem);
+
+        // Edit menu
+        JMenu editMenu = new JMenu("Edit");
+        JMenuItem undoItem = new JMenuItem("Undo");
+        JMenuItem redoItem = new JMenuItem("Redo");
+        JMenuItem cutItem = new JMenuItem("Cut");
+        JMenuItem copyItem = new JMenuItem("Copy");
+        JMenuItem pasteItem = new JMenuItem("Paste");
+        JMenuItem replaceItem = new JMenuItem("Replace");
+
+        undoItem.addActionListener(this);
+        redoItem.addActionListener(this);
+        cutItem.addActionListener(this);
+        copyItem.addActionListener(this);
+        pasteItem.addActionListener(this);
+        replaceItem.addActionListener(this);
+
+        editMenu.add(undoItem);
+        editMenu.add(redoItem);
+        editMenu.addSeparator();
+        editMenu.add(cutItem);
+        editMenu.add(copyItem);
+        editMenu.add(pasteItem);
+        editMenu.addSeparator();
+        editMenu.add(replaceItem);
+
+        // Add menus to bar
+        menuBar.add(fileMenu);
+        menuBar.add(editMenu);
+        setJMenuBar(menuBar);
+
+        // File chooser
+        fileChooser = new JFileChooser();
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        String command = e.getActionCommand();
+
+        switch (command) {
+            case "Open":
+                openFile();
+                break;
+            case "Save":
+                saveFile();
+                break;
+            case "Exit":
+                System.exit(0);
+                break;
+            case "Undo":
+                if (undoManager.canUndo()) {
+                    undoManager.undo();
+                }
+                break;
+            case "Redo":
+                if (undoManager.canRedo()) {
+                    undoManager.redo();
+                }
+                break;
+            case "Cut":
+                textArea.cut();
+                break;
+            case "Copy":
+                textArea.copy();
+                break;
+            case "Paste":
+                textArea.paste();
+                break;
+            case "Replace":
+                showReplaceDialog();
+                break;
+        }
+    }
+
+    private void openFile() {
+        int returnValue = fileChooser.showOpenDialog(this);
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                textArea.read(br, null);
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Error opening file!", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void saveFile() {
+        int returnValue = fileChooser.showSaveDialog(this);
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
+                textArea.write(bw);
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Error saving file!", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void showReplaceDialog() {
+        JDialog replaceDialog = new JDialog(this, "Find & Replace", true);
+        replaceDialog.setSize(400, 200);
+        replaceDialog.setLayout(new GridLayout(3, 2));
+
+        JLabel findLabel = new JLabel("Find:");
+        JTextField findField = new JTextField();
+        JLabel replaceLabel = new JLabel("Replace With:");
+        JTextField replaceField = new JTextField();
+
+        JButton replaceButton = new JButton("Replace");
+        JButton closeButton = new JButton("Close");
+
+        replaceDialog.add(findLabel);
+        replaceDialog.add(findField);
+        replaceDialog.add(replaceLabel);
+        replaceDialog.add(replaceField);
+        replaceDialog.add(replaceButton);
+        replaceDialog.add(closeButton);
+
+        // Use proper ActionListener instead of lambda
+        replaceButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String findText = findField.getText();
+                String replaceText = replaceField.getText();
+                String text = textArea.getText();
+
+                if (!findText.isEmpty() && text.contains(findText)) {
+                    textArea.setText(text.replace(findText, replaceText));
+                }
+            }
+        });
+
+        closeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                replaceDialog.dispose();
+            }
+        });
+
+        replaceDialog.setLocationRelativeTo(this);
+        replaceDialog.setVisible(true);
+    }
+
+    public static void main(String[] args) {
+        // Fix: Use traditional Runnable instead of lambda for NetBeans compatibility
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                new Notepad().setVisible(true);
+            }
+        });
+    }
+}
